@@ -1,31 +1,27 @@
+import dotenv from "dotenv";
+dotenv.config();
+import mongoose from "mongoose";
+
 import express from "express";
-
-let articlesInfo = [
-  {
-    name: "learn-react",
-
-    upvotes: 0,
-    comments: [],
-  },
-  {
-    name: "learn-node",
-
-    upvotes: 0,
-    comments: [],
-  },
-  {
-    name: "mongodb",
-
-    upvotes: 0,
-    comments: [],
-  },
-];
-
+import { db, connectToDb } from "./db.js";
 //localhost:3000/articles/learn-node
 // PUT/articles/learn-react/upvote
 
 const app = express();
+const port = process.env.PORT;
 app.use(express.json()); // middleware for jason
+
+app.get("/api/articles/:name", async (req, res) => {
+  const { name } = req.params;
+
+  const article = await db.collection("articles").findOne({ name });
+
+  if (article) {
+    res.json(article);
+  } else {
+    res.sendStatus(404);
+  }
+});
 
 //get
 // app.get("/hello/:name", (req, res) => {
@@ -43,30 +39,46 @@ app.use(express.json()); // middleware for jason
 // });
 
 //put
-app.put("/api/articles/:name/upvote", (req, res) => {
+app.put("/api/articles/:name/upvote", async (req, res) => {
   const { name } = req.params;
-  const article = articlesInfo.find((a) => a.name === name);
+  // const article = articlesInfo.find((a) => a.name === name);
+
+  await db.collection("articles").findOne({ name }, { $inc: { upvotes: 1 } });
+
+  const article = await db.collection("articles").findOne({ name });
   if (article) {
-    article.upvotes += 1;
     res.send(`The ${name} article now has ${article.upvotes} upvotes!!!`);
   } else {
     res.send(`That article doesn\ 't exist`);
   }
 });
 
-app.post("/api/articles/:name/comments", (req, res) => {
+app.post("/api/articles/:name/comments", async (req, res) => {
   const { name } = req.params;
   const { postedBy, text } = req.body;
 
-  const article = articlesInfo.find((a) => a.name === name);
+  await db
+    .collection("articles")
+    .updateOne({ name }, { $push: { comments: { postedBy, text } } });
+
+  const article = await db.collection("articles").findOne({ name });
   if (article) {
-    article.comments.push({ postedBy, text });
-    res.send(article.comments); 
+    res.send(article.comments);
   } else {
     res.send(`That article doesn\ 't exist`);
   }
 });
 
-app.listen(8000, () => {
-  console.log("Server is running on port 8000");
-});
+mongoose
+  .connect(process.env.MONGO_URI, {})
+  .then((result) => {
+  })
+  .catch((err) => console.log(err));
+  
+  connectToDb(()=>{
+    app.listen(port, () => {
+      console.log("database connected");
+      console.log(`Server is running on port ${port}`);
+    }); 
+  });
+  
