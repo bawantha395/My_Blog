@@ -39,46 +39,49 @@ app.get("/api/articles/:name", async (req, res) => {
 // });
 
 //put
+
 app.put("/api/articles/:name/upvote", async (req, res) => {
   const { name } = req.params;
-  // const article = articlesInfo.find((a) => a.name === name);
 
-  await db.collection("articles").findOne({ name }, { $inc: { upvotes: 1 } });
-
+  await db.collection("articles").updateOne(
+    { name },
+    {
+      $inc: { upvotes: 1 },
+    }
+  );
   const article = await db.collection("articles").findOne({ name });
+
   if (article) {
-    res.send(`The ${name} article now has ${article.upvotes} upvotes!!!`);
+    res.json(article);
   } else {
-    res.send(`That article doesn\ 't exist`);
+    res.send("That article doesn't exist");
   }
 });
-
-app.post("/api/articles/:name/comments", async (req, res) => {
+app.post('/api/articles/:name/comments', async (req, res) => {
   const { name } = req.params;
   const { postedBy, text } = req.body;
 
-  await db
-    .collection("articles")
-    .updateOne({ name }, { $push: { comments: { postedBy, text } } });
+  await db.collection('articles').updateOne({ name }, {
+      $push: { comments: { postedBy, text } },
+  });
+  const article = await db.collection('articles').findOne({ name });
 
-  const article = await db.collection("articles").findOne({ name });
   if (article) {
-    res.send(article.comments);
+      res.json(article);
   } else {
-    res.send(`That article doesn\ 't exist`);
+      res.send('That article doesn\'t exist!');
   }
 });
 
+
 mongoose
   .connect(process.env.MONGO_URI, {})
-  .then((result) => {
-  })
+  .then((result) => {})
   .catch((err) => console.log(err));
-  
-  connectToDb(()=>{
-    app.listen(port, () => {
-      console.log("database connected");
-      console.log(`Server is running on port ${port}`);
-    }); 
+
+connectToDb(() => {
+  app.listen(port, () => {
+    console.log("database connected");
+    console.log(`Server is running on port ${port}`);
   });
-  
+});

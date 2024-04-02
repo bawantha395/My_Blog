@@ -4,6 +4,8 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import articles from "./article-content";
 import NotFoundPage from "./NotFoundPage";
+import CommentsList from "../components/CommentsList";
+import AddCommentForm from "../components/AddCommentForm";
 
 export default function ArticlePage() {
   const [articleInfo, setsArticleInfo] = useState({ upvotes: 0, comments: [] });
@@ -15,10 +17,16 @@ export default function ArticlePage() {
       const newArticleInfo = response.data;
       setsArticleInfo(newArticleInfo);
     };
-    loadArticleInfo(); 
+    loadArticleInfo();
   }, []);
 
   const article = articles.find((article) => article.name === articleId);
+
+  const addUpvote = async () => {
+    const response = await axios.put(`/api/articles/${articleId}/upvote`);
+    const updatedArticle = response.data;
+    setsArticleInfo(updatedArticle);
+  };
 
   if (!article) {
     return <NotFoundPage />;
@@ -26,10 +34,15 @@ export default function ArticlePage() {
   return (
     <>
       <h1>{article.title}</h1>
-      <p> this article has {articleInfo.upvotes} upvote(s)</p>
+      <div className="upvotes-section">
+        <button onClick={addUpvote}>Upvote</button>
+        <p>This article has {articleInfo.upvotes} upvote(s)</p>
+      </div>
       {article.content.map((paragraph, i) => (
         <p key={i}>{paragraph}</p>
       ))}
+      <AddCommentForm articleName={articleId } onArticleUpdated={ updatedArticle => setsArticleInfo(updatedArticle)}/>
+      <CommentsList comments={articleInfo.comments} />
     </>
   );
 }
